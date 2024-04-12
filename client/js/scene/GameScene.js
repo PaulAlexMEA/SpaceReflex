@@ -1,33 +1,42 @@
-// Dans client/js/scene/GameScene.js
+// Importation de la classe Scene de Phaser
 export default class GameScene extends Phaser.Scene {
     constructor() {
-        super('GameScene');
+        super('GameScene');  // Appel du constructeur de la classe parent 
+        this.highScore = 0; 
     }
 
+    // Fonction pour initialiser les variables de scène
+    init(data) {
+        this.highScore = data.highScore || 0;  // Initialiser le score le plus élevé avec les données transmises
+    }
+
+    // Préchargement des assets 
     preload() {
-        this.load.image('player', 'assets/images/vaisseau.png'); // Chemin relatif depuis la racine du serveur
-        this.load.image('obstacle', 'assets/images/obstacleBombe.png');
-        this.load.image('coin', 'assets/images/coin.png');
+        this.load.image('player', 'assets/images/vaisseau.png');  
+        this.load.image('obstacle', 'assets/images/obstacleBombe.png');  
+        this.load.image('coin', 'assets/images/coin.png');  
     }
 
+    // Création des objets
     create() {
-        // Vaisseau du joueur
+        // Création et configuration du vaisseau joueur
         this.player = this.physics.add.sprite(400, 500, 'player').setInteractive();
-        this.player.setDisplaySize(50, 50); // Taille du vaisseau
-        this.player.setTint(0x00ff00); // Couleur verte pour le vaisseau
-        this.player.setCollideWorldBounds(true); // Empêche le vaisseau de sortir des limites du monde
+        this.player.setDisplaySize(50, 50);
+        this.player.setTint(0x00ff00);
+        this.player.setCollideWorldBounds(true); 
 
-        // Initialisation du score et du compteur de pièces
+        // Initialisation des scores et création des textes pour les afficher
         this.score = 0;
         this.coinsCollected = 0;
         this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#ffffff' });
         this.coinsText = this.add.text(16, 50, 'Coins: 0', { fontSize: '32px', fill: '#ffffff' });
+        this.highScoreText = this.add.text(650, 16, 'High Score: ' + this.highScore, { fontSize: '32px', fill: '#ff0000' });
 
-        // Paramètres initiaux des obstacles
-        this.obstacleVelocity = 200; // Vitesse initiale des obstacles
-        this.obstacleInterval = 1000; // Intervalle initial pour la génération des obstacles
+        // Configuration des obstacles
+        this.obstacleVelocity = 200;  
+        this.obstacleInterval = 1000;  
 
-        // Création des obstacles
+        // Création des groupes d'obstacles et de pièces avec gestion des retours de groupe
         this.obstacles = this.physics.add.group({
             removeCallback: (obstacle) => {
                 obstacle.scene.obstacles.killAndHide(obstacle);
@@ -35,7 +44,6 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
-        // Création des pièces
         this.coins = this.physics.add.group({
             removeCallback: (coin) => {
                 coin.scene.coins.killAndHide(coin);
@@ -43,51 +51,60 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
-        this.spawnObjects();  // Lancer la génération initiale des objets
+        // Appel de la fonction pour commencer à générer des obstacles et des pièces
+        this.spawnObjects();
 
-        // Gestionnaire de collision avec les pièces
+        // Gestion des collisions
         this.physics.add.collider(this.player, this.coins, this.collectCoin, null, this);
-
-        // Gestionnaire de collision avec les obstacles
         this.physics.add.collider(this.player, this.obstacles, this.endGame, null, this);
 
-        // Contrôles du clavier
+        // Création des contrôles du clavier
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Mise à jour du score avec le temps
+        // Événement pour augmenter régulièrement le score
         this.time.addEvent({
-            delay: 250, // Réduire l'intervalle à 250 millisecondes
-            callback: () => { this.score += 1; this.scoreText.setText('Score: ' + this.score); },
+            delay: 250,
+            callback: () => {
+                this.score += 1;
+                this.scoreText.setText('Score: ' + this.score);
+                // Mise à jour du score le plus élevé si nécessaire
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    this.highScoreText.setText('High Score: ' + this.highScore);
+                }
+            },
             callbackScope: this,
             loop: true
         });
     }
 
+    // Mise à jour de la scène, appelée pour chaque frame
     update() {
-        // Mise à jour de la logique du jeu
+        // Gestion des entrées du clavier pour déplacer le vaisseau
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-360); // Déplacer à gauche
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(360); // Déplacer à droite
         } else {
-            this.player.setVelocityX(0); // Arrêter le mouvement horizontal
+            this.player.setVelocityX(0); // Arrêter le mouvement
         }
 
-        // Augmenter la difficulté si le score atteint 200
+        // Augmentation de la difficulté en fonction du score
         if (this.score >= 200) {
-            this.obstacleVelocity = 300;  // Augmenter la vitesse des obstacles
-            this.obstacleInterval = 700;  // Diminuer l'intervalle de spawn
+            this.obstacleVelocity = 400;
+            this.obstacleInterval = 600;
         }
     }
 
+    // Fonction pour gérer la collecte des pièces
     collectCoin(player, coin) {
-        coin.disableBody(true, true); // Supprimer la pièce à la collecte
-        this.coinsCollected += 1; // Augmenter le compteur de pièces
-        this.coinsText.setText('Coins: ' + this.coinsCollected); // Mettre à jour le texte des pièces
+        coin.disableBody(true, true); 
+        this.coinsCollected += 1;  
+        this.coinsText.setText('Coins: ' + this.coinsCollected); 
     }
 
+    // Fonction pour générer des obstacles et des pièces
     spawnObjects() {
-        // Arrête l'ancien événement de spawn avant d'en commencer un nouveau si les paramètres ont changé
         if (this.spawnEvent) {
             this.spawnEvent.remove(false);
         }
@@ -96,15 +113,13 @@ export default class GameScene extends Phaser.Scene {
         this.spawnEvent = this.time.addEvent({
             delay: this.obstacleInterval,
             callback: () => {
-                // Obstacles
-                for (let i = 0; i < (this.score >= 200 ? 2 : 1); i++) {  // Condition pour augmenter le nombre d'obstacles
+                for (let i = 0; i < (this.score >= 200 ? 2 : 1); i++) {
                     const obstacle = this.obstacles.create(Phaser.Math.Between(50, 750), 0, 'obstacle');
                     obstacle.setDisplaySize(50, 50);
                     obstacle.setTint(0xff0000);
                     obstacle.setVelocityY(this.obstacleVelocity);
                 }
 
-                // Pièces
                 const coin = this.coins.create(Phaser.Math.Between(50, 750), 0, 'coin');
                 coin.setCircle(10);
                 coin.setTint(0xffff00);
@@ -115,9 +130,10 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
+    // Fonction appelée lors de la collision avec un obstacle
     endGame(player, obstacle) {
-        this.physics.pause(); // Arrêter la physique pour éviter d'autres interactions
-        player.setTint(0xff0000); // Indiquer la collision en changeant la couleur du joueur
-        this.scene.start('EndScene'); // Passer à la scène de fin
+        this.physics.pause();  
+        player.setTint(0xff0000);  
+        this.scene.start('EndScene'); 
     }
 }

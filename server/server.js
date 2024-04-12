@@ -1,12 +1,12 @@
 const express = require('express');
 const app = express();
 const PORT = 3000;
-const db = require('./database'); // Assurez-vous que le chemin est correct
+const db = require('./database');
 
 // Middleware pour parser les corps de requêtes JSON
 app.use(express.json());
 
-// Servir les fichiers statiques de votre jeu Phaser situés dans le dossier client
+// Servir les fichiers du jeu coté client 
 app.use(express.static('../client'));
 
 // Route pour récupérer les données d'un joueur spécifique par son nom
@@ -32,12 +32,17 @@ app.post('/player', (req, res) => {
         name: req.body.name,
         score: req.body.score,
         coins: req.body.coins,
-        skin: req.body.skin || 'default.png' // Utiliser une peau par défaut si aucune n'est fournie
+        skin: req.body.skin || 'default.png' 
     }, (err, result) => {
         if (err) {
             res.status(500).json({ error: 'Erreur du serveur lors de la sauvegarde des données du joueur' });
         } else {
-            res.status(201).json({ message: 'Données du joueur enregistrées avec succès', data: result });
+            res.status(201).json({
+                message: 'Données du joueur enregistrées avec succès',
+                data: result,
+                highscore: result.highscore,  
+                totalCoins: result.totalCoins 
+            });
         }
     });
 });

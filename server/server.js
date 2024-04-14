@@ -1,53 +1,97 @@
 const express = require('express');
+const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();
 const app = express();
-const PORT = 3000;
-const db = require('./database');
 
-// Middleware pour parser les corps de requêtes JSON
+app.use(cors());
 app.use(express.json());
 
-// Servir les fichiers du jeu coté client 
-app.use(express.static('../client'));
-
-// Route pour récupérer les données d'un joueur spécifique par son nom
-app.get('/player/:name', (req, res) => {
-    db.getPlayerByName(req.params.name, (err, player) => {
-        if (err) {
-            res.status(500).json({ error: 'Erreur du serveur lors de la récupération des données du joueur' });
-        } else if (player) {
-            res.json(player);
-        } else {
-            res.status(404).json({ message: 'Joueur non trouvé' });
-        }
-    });
-});
-
-// Route pour enregistrer ou mettre à jour les données d'un joueur
-app.post('/player', (req, res) => {
-    if (!req.body.name || req.body.score === undefined || req.body.coins === undefined) {
-        res.status(400).json({ error: 'Données requises manquantes' });
+// Connexion à la base de données SQLite
+const db = new sqlite3.Database('./game.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+    if (err) {
+        console.error('Erreur lors de la connexion à la base de données:', err.message);
         return;
     }
-    db.upsertPlayer({
-        name: req.body.name,
-        score: req.body.score,
-        coins: req.body.coins,
-        skin: req.body.skin || 'default.png' 
-    }, (err, result) => {
-        if (err) {
-            res.status(500).json({ error: 'Erreur du serveur lors de la sauvegarde des données du joueur' });
-        } else {
-            res.status(201).json({
-                message: 'Données du joueur enregistrées avec succès',
-                data: result,
-                highscore: result.highscore,  
-                totalCoins: result.totalCoins 
+    console.log('Connecté à la base de données SQLite.');
+    initializeDB();
+});
+
+// Initialisation de la base de données avec création de tables et insertion de valeurs initiales
+function initializeDB() {
+    db.serialize(() => {
+        db.run(`
+            CREATE TABLE IF NOT EXISTS players (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                highScore INTEGER DEFAULT 0,
+                totalCoins INTEGER DEFAULT 0
+            );
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS game_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                parameter TEXT NOT NULL,
+                value TEXT NOT NULL
+            );
+        `, () => {
+            // Insérer les paramètres initiaux seulement si la table vient d'être créée
+            db.all("SELECT COUNT(*) AS count FROM game_settings", (err, rows) => {
+                if (rows[0].count === 0) {
+                    const settings = [
+                        ['obstacle_type', 'small,large,moving,static'],
+                        ['obstacle_frequency', '30'],
+                        ['obstacle_speed', '5'],
+                        ['coin_frequency', '15'],
+                        ['coin_value', '10'],
+                        ['player_speed', '5'],
+                        ['difficulty_levels', 'increase at 200 score'],
+                        ['ui_theme', 'default']
+                    ];
+                    settings.forEach(setting => {
+                        db.run(`INSERT INTO game_settings (parameter, value) VALUES (?, ?)`, setting);
+                    });
+                }
             });
+        });
+    });
+}
+
+// Route pour démarrer un nouveau jeu et créer un nouvel identifiant de jeu
+app.post('/api/new_game', (req, res) => {
+    db.run(`INSERT INTO players (highScore, totalCoins) VALUES (0, 0)`, function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
         }
+        res.json({ gameId: this.lastID });
     });
 });
 
-// Démarrer le serveur
+// Route pour récupérer les paramètres du jeu
+app.get('/api/game_settings', (req, res) => {
+    db.all(`SELECT parameter, value FROM game_settings`, [], (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows.reduce((acc, row) => ({ ...acc, [row.parameter]: row.value }), {}));
+    });
+});
+
+// Route pour mettre à jour un paramètre de jeu
+app.post('/api/update_settings', (req, res) => {
+    const { parameter, value } = req.body;
+    db.run(`UPDATE game_settings SET value = ? WHERE parameter = ?`, [value, parameter], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ message: 'Parameter updated successfully' });
+    });
+});
+
+// Définition du port et démarrage du serveur
+const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

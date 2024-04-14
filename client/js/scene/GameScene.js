@@ -22,19 +22,18 @@ export default class GameScene extends Phaser.Scene {
         // Création et configuration du vaisseau joueur
         this.player = this.physics.add.sprite(400, 500, 'player').setInteractive();
         this.player.setDisplaySize(50, 50);
-        this.player.setTint(0x00ff00);
         this.player.setCollideWorldBounds(true); 
 
         // Initialisation des scores et création des textes pour les afficher
         this.score = 0;
         this.coinsCollected = 0;
-        this.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#ffffff' });
-        this.coinsText = this.add.text(16, 50, 'Coins: 0', { fontSize: '32px', fill: '#ffffff' });
-        this.highScoreText = this.add.text(650, 16, 'High Score: ' + this.highScore, { fontSize: '32px', fill: '#ff0000' });
+        this.scoreText = this.add.text(16, 50, 'Score: 0', { fontSize: '32px', fill: '#ffffff' });
+        this.coinsText = this.add.text(16, 86, 'Coins: 0', { fontSize: '32px', fill: '#ffffff' });
+        this.highScoreText = this.add.text(16, 16, 'High Score: ' + this.highScore, { fontSize: '32px', fill: '#ff0000' });
 
         // Configuration des obstacles
         this.obstacleVelocity = 200;  
-        this.obstacleInterval = 1000;  
+        this.obstacleInterval = 450;  
 
         // Création des groupes d'obstacles et de pièces avec gestion des retours de groupe
         this.obstacles = this.physics.add.group({
@@ -82,17 +81,17 @@ export default class GameScene extends Phaser.Scene {
     update() {
         // Gestion des entrées du clavier pour déplacer le vaisseau
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-360); // Déplacer à gauche
+            this.player.setVelocityX(-450); // Déplacer à gauche
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(360); // Déplacer à droite
+            this.player.setVelocityX(450); // Déplacer à droite
         } else {
             this.player.setVelocityX(0); // Arrêter le mouvement
         }
 
         // Augmentation de la difficulté en fonction du score
         if (this.score >= 200) {
-            this.obstacleVelocity = 400;
-            this.obstacleInterval = 600;
+            this.obstacleVelocity = 200;
+            this.obstacleInterval = 200;
         }
     }
 
@@ -132,8 +131,15 @@ export default class GameScene extends Phaser.Scene {
 
     // Fonction appelée lors de la collision avec un obstacle
     endGame(player, obstacle) {
-        this.physics.pause();  
-        player.setTint(0xff0000);  
-        this.scene.start('EndScene'); 
+        console.log("Collision detected, ending game.");
+        this.physics.pause();  // Arrête la physique pour éviter d'autres collisions
+        player.setTint(0xff0000);  // Change la couleur du joueur pour indiquer la collision
+    
+        // Ajoute un léger délai avant de changer de scène pour que le joueur réalise ce qui s'est passé
+        this.time.delayedCall(1000, () => {
+            console.log("Starting EndScene.");
+            this.scene.start('EndScene');
+        }, [], this);
     }
+    
 }

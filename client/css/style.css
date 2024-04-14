@@ -1,15 +1,16 @@
 body, html {
     margin: 0;
     padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-#game-container {
+    overflow: hidden; /* Empêche le défilement */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-color: #000; /* Fond noir pour l'espace */
+    height: 100vh; /* Utilise toute la hauteur de la fenêtre */
+    background-color: #000;
+}
+
+#game-container {
+    width: 800px; /* Ou la largeur de votre jeu */
+    height: 600px; /* Ou la hauteur de votre jeu */
+    background-color: #000; /* Couleur de fond si le canvas ne couvre pas toute la zone */
 }

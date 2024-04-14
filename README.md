@@ -1,3 +1,4 @@
+
 Ouverture du projet : 
 - git clone https://github.com/PaulAlexMEA/SpaceReflex.git
 - cd SpaceReflex
@@ -12,9 +13,12 @@ Installation de Node JS et SGLite:
 Framework utilisé : 
 - Phaser pour la gestion d'affichage du jeu
 - SQLite pour gérer le back plus simplement
-- Opengameart pour les assets
+- Opengameart et craftpix pour les assets
 
-Amélioration future : 
-- créer un page d'accueil avant la partie
-- régler des problème d'affichage comme le High Score et aussi le Total coin 
-- Stocker de potentiel assets qu'on pourrai ajouter pour faire un boutique ou le joueur pourra utiliser ses coins pour acheter
+La base de données stock différents paramètre de jeu comme : 
+- La fréquence d'apparition des obstacles et coins 
+- La vitesse des obstacles 
+- Les déplacement du joueur
+- Le point par pièce
+- La logique de difficulté 
+- La gestion dynamique du score et coin

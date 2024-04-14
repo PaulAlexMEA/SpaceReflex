@@ -4,21 +4,19 @@ export default class EndScene extends Phaser.Scene {
     }
 
     create() {
-        // Configurer le fond de la caméra à noir
         this.cameras.main.setBackgroundColor('#000000');
 
-        // Message de fin de jeu avec un style plus soigné
         const gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, 'Game Over', {
             font: '48px Arial',
-            fill: '#ff0000'  // Rouge pour un impact visuel
+            fill: '#ff0000'  
         }).setOrigin(0.5);
 
         const restartText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'Click to restart', {
             font: '32px Arial',
-            fill: '#ffffff'  // Texte blanc pour contraster avec le fond
+            fill: '#ffffff'  
         }).setOrigin(0.5);
 
-        // Animation pour attirer l'attention sur le texte de redémarrage
+        // Animation sur Click to restart
         this.tweens.add({
             targets: restartText,
             alpha: 0.1,

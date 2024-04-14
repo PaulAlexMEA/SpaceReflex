@@ -1,13 +1,13 @@
 // Importation de la classe Scene de Phaser
 export default class GameScene extends Phaser.Scene {
     constructor() {
-        super('GameScene');  // Appel du constructeur de la classe parent 
+        super('GameScene');  
         this.highScore = 0; 
     }
 
     // Fonction pour initialiser les variables de scène
     init(data) {
-        this.highScore = data.highScore || 0;  // Initialiser le score le plus élevé avec les données transmises
+        this.highScore = data.highScore || 0;  
     }
 
     // Préchargement des assets 
@@ -81,11 +81,11 @@ export default class GameScene extends Phaser.Scene {
     update() {
         // Gestion des entrées du clavier pour déplacer le vaisseau
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-450); // Déplacer à gauche
+            this.player.setVelocityX(-450); 
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(450); // Déplacer à droite
+            this.player.setVelocityX(450); 
         } else {
-            this.player.setVelocityX(0); // Arrêter le mouvement
+            this.player.setVelocityX(0); 
         }
 
         // Augmentation de la difficulté en fonction du score
@@ -132,8 +132,8 @@ export default class GameScene extends Phaser.Scene {
     // Fonction appelée lors de la collision avec un obstacle
     endGame(player, obstacle) {
         console.log("Collision detected, ending game.");
-        this.physics.pause();  // Arrête la physique pour éviter d'autres collisions
-        player.setTint(0xff0000);  // Change la couleur du joueur pour indiquer la collision
+        this.physics.pause();  
+        player.setTint(0xff0000);  
     
         // Ajoute un léger délai avant de changer de scène pour que le joueur réalise ce qui s'est passé
         this.time.delayedCall(1000, () => {

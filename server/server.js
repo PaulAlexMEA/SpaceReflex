@@ -3,22 +3,26 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const app = express();
 
+// Utilise CORS pour permettre les requêtes de différentes origines
 app.use(cors());
+
+// Permet à l'application de parser les corps des requêtes JSON
 app.use(express.json());
 
-// Connexion à la base de données SQLite
+// Initialise et connecte la base de données SQLite
 const db = new sqlite3.Database('./game.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
     if (err) {
         console.error('Erreur lors de la connexion à la base de données:', err.message);
         return;
     }
     console.log('Connecté à la base de données SQLite.');
-    initializeDB();
+    initializeDB();  
 });
 
-// Initialisation de la base de données avec création de tables et insertion de valeurs initiales
+// Fonction pour créer les tables nécessaires dans la base de données
 function initializeDB() {
     db.serialize(() => {
+        // Crée la table des joueurs si elle n'existe pas déjà
         db.run(`
             CREATE TABLE IF NOT EXISTS players (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +31,7 @@ function initializeDB() {
             );
         `);
 
+        // Crée la table des paramètres du jeu si elle n'existe pas déjà
         db.run(`
             CREATE TABLE IF NOT EXISTS game_settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,64 +39,57 @@ function initializeDB() {
                 value TEXT NOT NULL
             );
         `, () => {
-            // Insérer les paramètres initiaux seulement si la table vient d'être créée
-            db.all("SELECT COUNT(*) AS count FROM game_settings", (err, rows) => {
-                if (rows[0].count === 0) {
-                    const settings = [
-                        ['obstacle_type', 'small,large,moving,static'],
-                        ['obstacle_frequency', '30'],
-                        ['obstacle_speed', '5'],
-                        ['coin_frequency', '15'],
-                        ['coin_value', '10'],
-                        ['player_speed', '5'],
-                        ['difficulty_levels', 'increase at 200 score'],
-                        ['ui_theme', 'default']
-                    ];
-                    settings.forEach(setting => {
-                        db.run(`INSERT INTO game_settings (parameter, value) VALUES (?, ?)`, setting);
-                    });
-                }
+            // Insertion des paramètres par défaut après la création de la table
+            const settings = [
+                ['obstacle_type', 'small,large,moving,static'],
+                ['obstacle_frequency', '30'],
+                ['obstacle_speed', '5'],
+                ['coin_frequency', '15'],
+                ['coin_value', '10'],
+                ['player_speed', '5'],
+                ['difficulty_levels', 'increase at 200 score'],
+                ['ui_theme', 'default']
+            ];
+            settings.forEach(setting => {
+                db.run(`INSERT INTO game_settings (parameter, value) VALUES (?, ?) ON CONFLICT(parameter) DO UPDATE SET value = excluded.value`, setting);
             });
         });
     });
 }
 
-// Route pour démarrer un nouveau jeu et créer un nouvel identifiant de jeu
+// Route pour démarrer un nouveau jeu et enregistrer un nouvel identifiant de jeu
 app.post('/api/new_game', (req, res) => {
     db.run(`INSERT INTO players (highScore, totalCoins) VALUES (0, 0)`, function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ gameId: this.lastID });
+        if (err) res.status(500).json({ error: err.message });
+        else res.json({ gameId: this.lastID });
     });
 });
 
 // Route pour récupérer les paramètres du jeu
 app.get('/api/game_settings', (req, res) => {
     db.all(`SELECT parameter, value FROM game_settings`, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows.reduce((acc, row) => ({ ...acc, [row.parameter]: row.value }), {}));
+        if (err) res.status(500).json({ error: err.message });
+        else res.json(rows.reduce((acc, row) => ({ ...acc, [row.parameter]: row.value }), {}));
     });
 });
 
-// Route pour mettre à jour un paramètre de jeu
-app.post('/api/update_settings', (req, res) => {
-    const { parameter, value } = req.body;
-    db.run(`UPDATE game_settings SET value = ? WHERE parameter = ?`, [value, parameter], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({ message: 'Parameter updated successfully' });
+// Route pour mettre à jour le score et le total de pièces d'un joueur
+app.post('/api/update_player', (req, res) => {
+    const { gameId, highScore, totalCoins } = req.body;
+    db.run(`UPDATE players SET highScore = ?, totalCoins = ? WHERE id = ?`, [highScore, totalCoins, gameId], function(err) {
+        if (err) res.status(500).json({ error: err.message });
+        else res.json({ message: 'Player updated successfully' });
     });
 });
 
-// Définition du port et démarrage du serveur
+// Démarre le serveur sur le port spécifié
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+
+// Middleware de gestion d'erreurs pour intercepter toute erreur non gérée
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something went wrong!');
 });
